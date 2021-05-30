@@ -246,6 +246,9 @@ static void init(void) {
   window_stack_push(window, animated);
 
   s = malloc(STR_SIZE);
+  time_t now = time(NULL);
+  struct tm *timeinfo = localtime(&now);
+  handle_minute_tick(timeinfo, 0);
   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
 
 #ifdef PBL_SDK_2
