@@ -125,7 +125,11 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
   strftime(date_text, sizeof(date_text), "%m-%d", tick_time);
   text_layer_set_text(date_text_layer, date_text);
 
-  strftime(time_text, sizeof(time_text), "%I:%M", tick_time);
+  if (clock_is_24h_style())
+    strftime(time_text, sizeof(time_text), "%H:%M", tick_time);
+  else
+    strftime(time_text, sizeof(time_text), "%I:%M", tick_time);
+
   text_layer_set_text(time_text_layer, time_text);
  
   strftime(week_text, sizeof(week_text), "//%w", tick_time);
