@@ -12,7 +12,6 @@
 static Window *window;
 static TextLayer *time_text_layer;
 static TextLayer *date_text_layer;
-static TextLayer *week_text_layer;
 static TextLayer *bottom_text_layer;
 #ifdef PBL_BW
 static GBitmap *world_bitmap;
@@ -36,8 +35,6 @@ static void flip_color(int sw){
     text_layer_set_text_color(time_text_layer, GColorBlack);
     text_layer_set_background_color(date_text_layer, GColorWhite);
     text_layer_set_text_color(date_text_layer, GColorBlack);
-    text_layer_set_background_color(week_text_layer, GColorWhite);
-    text_layer_set_text_color(week_text_layer, GColorBlack);
     text_layer_set_background_color(bottom_text_layer, GColorWhite);
     text_layer_set_text_color(bottom_text_layer, GColorBlack);
   } else {
@@ -45,8 +42,6 @@ static void flip_color(int sw){
     text_layer_set_text_color(time_text_layer, GColorWhite);
     text_layer_set_background_color(date_text_layer, GColorBlack);
     text_layer_set_text_color(date_text_layer, GColorWhite);
-    text_layer_set_background_color(week_text_layer, GColorBlack);
-    text_layer_set_text_color(week_text_layer, GColorWhite);
     text_layer_set_background_color(bottom_text_layer, GColorBlack);
     text_layer_set_text_color(bottom_text_layer, GColorWhite);
   }
@@ -118,11 +113,10 @@ static void draw_watch(struct Layer *layer, GContext *ctx) {
 }
 
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
-  static char time_text[] = "00:00";
-  static char date_text[] = "00-00";
-  static char week_text[] = "//0";
+  static char time_text[10];
+  static char date_text[25];
 
-  strftime(date_text, sizeof(date_text), "%m-%d", tick_time);
+  strftime(date_text, sizeof(date_text), "%a %d %b", tick_time);
   text_layer_set_text(date_text_layer, date_text);
 
   if (clock_is_24h_style())
@@ -132,10 +126,6 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 
   text_layer_set_text(time_text_layer, time_text);
  
-  strftime(week_text, sizeof(week_text), "//%w", tick_time);
-  if(week_text[2]=='0') week_text[2]='7';
-  // week_text[0] ++;
-  text_layer_set_text(week_text_layer, week_text);
   redraw_counter++;
   if (redraw_counter >= REDRAW_INTERVAL) {
     draw_earth();
@@ -173,7 +163,20 @@ static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  time_text_layer = text_layer_create(GRect(0, 97, 144, 45));
+  bottom_text_layer = text_layer_create(GRect(0, 142, 144, 32));
+  text_layer_set_background_color(bottom_text_layer, background_color);
+  text_layer_set_text_color(bottom_text_layer, foreground_color);
+  layer_add_child(window_layer, text_layer_get_layer(bottom_text_layer));
+
+  date_text_layer = text_layer_create(GRect(0, 134, 144, 28));
+  text_layer_set_background_color(date_text_layer, background_color);
+  text_layer_set_text_color(date_text_layer, foreground_color);
+  text_layer_set_font(date_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  text_layer_set_text(date_text_layer, "");
+  text_layer_set_text_alignment(date_text_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(date_text_layer));
+
+  time_text_layer = text_layer_create(GRect(0, 95, 144, 42));
   text_layer_set_background_color(time_text_layer, background_color);
   text_layer_set_text_color(time_text_layer, foreground_color);
   text_layer_set_font(time_text_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
@@ -181,30 +184,10 @@ static void window_load(Window *window) {
   text_layer_set_text_alignment(time_text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(time_text_layer));
 
-  bottom_text_layer = text_layer_create(GRect(0, 142, 144, 32));
-  text_layer_set_background_color(bottom_text_layer, background_color);
-  text_layer_set_text_color(bottom_text_layer, foreground_color);
-  layer_add_child(window_layer, text_layer_get_layer(bottom_text_layer));
-
-  date_text_layer = text_layer_create(GRect(10, 143, 72, 30));
-  text_layer_set_background_color(date_text_layer, background_color);
-  text_layer_set_text_color(date_text_layer, foreground_color);
-  text_layer_set_font(date_text_layer, fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS));
-  text_layer_set_text(date_text_layer, "");
-  text_layer_set_text_alignment(date_text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(date_text_layer));
-
-  week_text_layer = text_layer_create(GRect(95, 143, 35, 30));
-  text_layer_set_background_color(week_text_layer, background_color);
-  text_layer_set_text_color(week_text_layer, foreground_color);
-  text_layer_set_font(week_text_layer, fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS));
-  text_layer_set_text(week_text_layer, "");
-  text_layer_set_text_alignment(week_text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(week_text_layer));
-
   canvas = layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
   layer_set_update_proc(canvas, draw_watch);
   layer_add_child(window_layer, canvas);
+
 #ifdef PBL_BW
   image = gbitmap_create_blank(GSize(WIDTH, HEIGHT), GBitmapFormat1Bit);
 #else
@@ -216,8 +199,7 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
   text_layer_destroy(time_text_layer);
   text_layer_destroy(date_text_layer);
-  text_layer_destroy(week_text_layer);
-    text_layer_destroy(bottom_text_layer);
+  text_layer_destroy(bottom_text_layer);
   layer_destroy(canvas);
   gbitmap_destroy(image);
 }
